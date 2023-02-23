@@ -8,7 +8,7 @@
 
     <!--Device Name-->
     <characteristic const="false" id="device_name" name="Device Name" sourceId="org.bluetooth.characteristic.gap.device_name" uuid="2A00">
-      <value length="22" type="utf-8" variable_length="false">Bluetooth Messschieber</value>
+      <value length="6" type="utf-8" variable_length="false">CALIPR</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
         <write authenticated="false" bonded="false" encrypted="false"/>
@@ -21,20 +21,6 @@
       <value length="2" type="hex" variable_length="false">c103</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
-      </properties>
-    </characteristic>
-  </service>
-
-  <!--Silicon Labs OTA-->
-  <service advertise="false" name="Silicon Labs OTA" requirement="mandatory" sourceId="com.silabs.service.ota" type="primary" uuid="1D14D6EE-FD63-4FA1-BFA4-8F47B42119F0">
-    <informativeText>Abstract: The Silicon Labs OTA Service enables over-the-air firmware update of the device. </informativeText>
-
-    <!--Silicon Labs OTA Control-->
-    <characteristic const="false" id="ota_control_caliper" name="Silicon Labs OTA Control" sourceId="com.silabs.characteristic.ota_control" uuid="F7BF3564-FB6D-4E53-88A4-5E37E0326063">
-      <informativeText>Abstract: Silicon Labs OTA Control. </informativeText>
-      <value length="1" type="user" variable_length="false"/>
-      <properties>
-        <write authenticated="false" bonded="false" encrypted="false"/>
       </properties>
     </characteristic>
   </service>
@@ -65,14 +51,21 @@
       </properties>
 
       <!--Client Characteristic Configuration-->
-      <descriptor const="false" discoverable="true" id="client_characteristic_configuration" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
-        <properties/>
+      <descriptor const="false" discoverable="true" id="report_configuration" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
+        <informativeText>Abstract:  The Client Characteristic Configuration descriptor defines how the characteristic may be configured by a specific client.  Summary:  This descriptor shall be persistent across connections for bonded devices.         The Client Characteristic Configuration descriptor is unique for each client. A client may read and write this descriptor to determine and set the configuration for that client.         Authentication and authorization may be required by the server to write this descriptor.         The default value for the Client Characteristic Configuration descriptor is 0x00. Upon connection of non-binded clients, this descriptor is set to the default value.  </informativeText>
+        <properties>
+          <read authenticated="false" bonded="false" encrypted="true"/>
+          <write authenticated="false" bonded="false" encrypted="true"/>
+        </properties>
         <value length="2" type="hex" variable_length="false"/>
       </descriptor>
 
       <!--Report Reference-->
       <descriptor const="false" discoverable="true" id="report_reference" name="Report Reference" sourceId="org.bluetooth.descriptor.report_reference" uuid="2908">
-        <properties/>
+        <informativeText>Summary:  Mapping information in the form of a Report ID and Report Type which maps the current parent characteristic to the Report ID(s) and Report Type (s) defined within the Report Map characteristic.  </informativeText>
+        <properties>
+          <read authenticated="false" bonded="false" encrypted="true"/>
+        </properties>
         <value length="2" type="hex" variable_length="false">0001</value>
       </descriptor>
     </characteristic>
@@ -81,10 +74,13 @@
     <characteristic const="false" id="report_map" name="Report Map" sourceId="org.bluetooth.characteristic.report_map" uuid="2A4B">
       <informativeText>Summary:  The Report Map characteristic is used to define formatting information for Input Report, Output Report, and Feature Report data transferred between a HID Device and HID Host, information on how this data can be used, and other information regarding physical aspects of the device (i.e. that the device functions as a keyboard, for example, or has multiple functions such as a keyboard and volume controls).       Only a single instance of this characteristic exists as part of a HID Service.  </informativeText>
       <value length="45" type="hex" variable_length="false">05010906a101050719e029e71500250175019508810295017508810195067508150025650507190029658100c0</value>
-      <properties/>
+      <properties>
+        <read authenticated="false" bonded="false" encrypted="true"/>
+      </properties>
 
       <!--External Report Reference-->
       <descriptor const="false" discoverable="true" id="external_report_reference" name="External Report Reference" sourceId="org.bluetooth.descriptor.external_report_reference" uuid="2907">
+        <informativeText>Summary:  The External Report Reference characteristic descriptor allows a HID Host to map information from the Report Map characteristic value for Input Report, Output Report or Feature Report data to the Characteristic UUID of external service characteristics used to transfer the associated data.  </informativeText>
         <properties>
           <read authenticated="false" bonded="false" encrypted="false"/>
         </properties>
@@ -125,6 +121,7 @@
 
       <!--Characteristic Presentation Format-->
       <descriptor const="false" discoverable="true" id="characteristic_presentation_format" name="Characteristic Presentation Format" sourceId="org.bluetooth.descriptor.gatt.characteristic_presentation_format" uuid="2904">
+        <informativeText>Abstract:  The Characteristic Presentation Format descriptor defines the format of the Characteristic Value.  Summary:  One or more Characteristic Presentation Format descriptors may be present. If multiple of these descriptors are present, then a Aggregate Formate descriptor is present.         This descriptor is read only and does not require authentication or authorization to read.         This descriptor is composed of five parts: format, exponent, unit, name space and description.         The Format field determines how a single value contained in the Characteristic Value is formatted.         The Exponent field is used with interger data types to determine how the Characteristic Value is furhter formatted.         The actual value = Characteristic Value * 10^Exponent.  Examples:  When encoding an IPv4 address, the uint32 Format type is used.  When encoding an IPv6 address, the uint128 Format type is used.  When encoding a Bluetooth address (BD_ADDR), the uint48 Format type is used.  For a Characteristic Value of 23 and an Exponent of 2, the actual value is 2300  For a Characteristi Value of 3892 and an Exponent of -3, the actual value is 3.892  </informativeText>
         <properties>
           <read authenticated="false" bonded="false" encrypted="false"/>
         </properties>
@@ -132,7 +129,8 @@
       </descriptor>
 
       <!--Client Characteristic Configuration-->
-      <descriptor const="false" discoverable="true" id="client_characteristic_configuration_4" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
+      <descriptor const="false" discoverable="true" id="client_characteristic_configuration" name="Client Characteristic Configuration" sourceId="org.bluetooth.descriptor.gatt.client_characteristic_configuration" uuid="2902">
+        <informativeText>Abstract:  The Client Characteristic Configuration descriptor defines how the characteristic may be configured by a specific client.  Summary:  This descriptor shall be persistent across connections for bonded devices.         The Client Characteristic Configuration descriptor is unique for each client. A client may read and write this descriptor to determine and set the configuration for that client.         Authentication and authorization may be required by the server to write this descriptor.         The default value for the Client Characteristic Configuration descriptor is 0x00. Upon connection of non-binded clients, this descriptor is set to the default value.  </informativeText>
         <properties>
           <read authenticated="false" bonded="false" encrypted="false"/>
           <write authenticated="false" bonded="false" encrypted="false"/>
@@ -147,9 +145,9 @@
     <informativeText>Abstract:  The Device Information Service exposes manufacturer and/or vendor information about a device.  Summary:  This service exposes manufacturer information about a device. The Device Information Service is instantiated as a Primary Service. Only one instance of the Device Information Service is exposed on a device.  </informativeText>
 
     <!--Manufacturer Name String-->
-    <characteristic const="false" id="manufacturer_name_string" name="Manufacturer Name String" sourceId="org.bluetooth.characteristic.manufacturer_name_string" uuid="2A29">
+    <characteristic const="true" id="manufacturer_name_string" name="Manufacturer Name String" sourceId="org.bluetooth.characteristic.manufacturer_name_string" uuid="2A29">
       <informativeText>Abstract:  The value of this characteristic is a UTF-8 string representing the name of the manufacturer of the device.  </informativeText>
-      <value length="6" type="utf-8" variable_length="false">Silabs</value>
+      <value length="12" type="utf-8" variable_length="false">Silicon Labs</value>
       <properties>
         <read authenticated="false" bonded="false" encrypted="false"/>
       </properties>

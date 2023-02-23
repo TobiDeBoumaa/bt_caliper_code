@@ -28,7 +28,7 @@
 // <SL_SIMPLE_BUTTON_MODE_POLL_AND_DEBOUNCE=> Poll and Debounce
 // <SL_SIMPLE_BUTTON_MODE_POLL=> Poll
 // <i> Default: SL_SIMPLE_BUTTON_MODE_INTERRUPT
-#define SL_SIMPLE_BUTTON_BTN0_MODE       SL_SIMPLE_BUTTON_MODE_POLL_AND_DEBOUNCE
+#define SL_SIMPLE_BUTTON_BTN0_MODE       SL_SIMPLE_BUTTON_MODE_INTERRUPT
 // <<< end of configuration section >>>
 
 // <<< sl:start pin_tool >>>
