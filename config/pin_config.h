@@ -75,13 +75,17 @@
 #define USART0_CLK_PORT                          gpioPortC
 #define USART0_CLK_PIN                           0
 
-// USART0 RX on PC01
-#define USART0_RX_PORT                           gpioPortC
-#define USART0_RX_PIN                            1
+// USART0 CS on PC03
+#define USART0_CS_PORT                           gpioPortC
+#define USART0_CS_PIN                            3
 
-// USART0 TX on PC02
+// USART0 RX on PC02
+#define USART0_RX_PORT                           gpioPortC
+#define USART0_RX_PIN                            2
+
+// USART0 TX on PC01
 #define USART0_TX_PORT                           gpioPortC
-#define USART0_TX_PIN                            2
+#define USART0_TX_PIN                            1
 
 // [USART0]$
 
@@ -89,6 +93,14 @@
 // [USART1]$
 
 // $[USART2]
+// USART2 RX on PD00
+#define USART2_RX_PORT                           gpioPortD
+#define USART2_RX_PIN                            0
+
+// USART2 TX on PD01
+#define USART2_TX_PORT                           gpioPortD
+#define USART2_TX_PIN                            1
+
 // [USART2]$
 
 // $[I2C1]
@@ -96,6 +108,9 @@
 
 // $[LETIMER0]
 // [LETIMER0]$
+
+// $[IADC0]
+// [IADC0]$
 
 // $[ACMP0]
 // [ACMP0]$
@@ -111,15 +126,6 @@
 
 // $[MODEM]
 // [MODEM]$
-
-// $[CUSTOM_PIN_NAME]
-#define PIN_BTN_PORT                             gpioPortB
-#define PIN_BTN_PIN                              0
-
-#define PIN_LED_PORT                             gpioPortB
-#define PIN_LED_PIN                              1
-
-// [CUSTOM_PIN_NAME]$
 
 #endif // PIN_CONFIG_H
 

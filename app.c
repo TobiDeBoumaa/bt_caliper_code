@@ -3,7 +3,7 @@
  * @brief Core application logic.
  *******************************************************************************
  * # License
- * <b>Copyright 2021 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -29,20 +29,24 @@
  ******************************************************************************/
 #include "em_common.h"
 #include "app_assert.h"
-#include "app_log.h"
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
 #include "app.h"
+
+#include "app_log.h"
 #include "sl_simple_button_instances.h"
 #include "sl_simple_led_instances.h"
+#include "sl_spidrv_instances.h"
 
-//my own global vars
-
+#define KEY_ARRAY_SIZE 25
 #define MODIFIER_INDEX 0
 #define DATA_INDEX 2
 
+#define SHIFT_KEY_CODE 0x02
+
 static uint8_t input_report_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t actual_key, modifier;
+static uint8_t counter=0;
 
 static uint8_t notification_enabled = 0;
 static uint8_t connection_handle = 0xff;
@@ -50,30 +54,80 @@ static uint8_t connection_handle = 0xff;
 // The advertising set handle allocated from Bluetooth stack.
 static uint8_t advertising_set_handle = 0xff;
 
-static bool report_button_flag = false;
+static const uint8_t reduced_key_array[] =
+{
+  0x04,   /* a */
+  0x05,   /* b */
+  0x06,   /* c */
+  0x07,   /* d */
+  0x08,   /* e */
+  0x09,   /* f */
+  0x0a,   /* g */
+  0x0b,   /* h */
+  0x0c,   /* i */
+  0x0d,   /* j */
+  0x0e,   /* k */
+  0x0f,   /* l */
+  0x10,   /* m */
+  0x11,   /* n */
+  0x12,   /* o */
+  0x13,   /* p */
+  0x14,   /* q */
+  0x15,   /* r */
+  0x16,   /* s */
+  0x17,   /* t */
+  0x18,   /* u */
+  0x19,   /* v */
+  0x1a,   /* w */
+  0x1b,   /* x */
+  0x1c,   /* y */
+  0x1d,   /* z */
+};
 
-static bool button_state_tmp = false;
+static const uint8_t key_Numbers[] =
+{
+  0x27,   /* 0 */
+  0x1E,   /* 1 */
+  0x1F,   /* 2 */
+  0x20,   /* 3 */
+  0x21,   /* 4 */
+  0x22,   /* 5 */
+  0x23,   /* 6 */
+  0x24,   /* 7 */
+  0x25,   /* 8 */
+  0x26,   /* 9 */
+};
 
-// Updates the Report Button characteristic.
-//static sl_status_t update_report_button_characteristic(void);
-// Sends notification of the Report Button characteristic.
-//static sl_status_t send_report_button_notification(void);
+uint16_t spi_rxbuffer[2]={0};
+int32_t lastValue=0;
+bool isInInch = false;
+/*************************************************************************//**
+ * Uart Callback
+ *****************************************************************************/
+void TransferComplete(SPIDRV_Handle_t handle, Ecode_t transferStatus, int itemsTransferred)
+{
+  if (transferStatus == ECODE_EMDRV_SPIDRV_OK) {
+      uint32_t combiBuffer = spi_rxbuffer[0] + (spi_rxbuffer[1]<<12); // tranmition contains 2 12 bit frames
+      lastValue =  combiBuffer & 0x0FFFFF;  // last 24bit contain data
+      lastValue *= combiBuffer & 0x100000 ? -1:1;  // bi 25 determins if it is a negativ number
+      isInInch = combiBuffer & 0x800000;
+  }
+  SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
+}
 
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
 SL_WEAK void app_init(void)
 {
-  // Make sure there will be no button events before the boot event.
-  //sl_button_disable(SL_SIMPLE_BUTTON_INSTANCE(0));
-  //sl_led_turn_on(SL_SIMPLE_LED_INSTANCE(0));
+  sl_status_t sc;
+  //sl_uartdrv_init_instances(); // done automaticlly
+  //sc = sl_uartdrv_set_default(&sl_uartdrv_usart_caliprUART_handle);
+  //app_assert_status(sc);
+  sl_spidrv_usart_spifahrer_handle->peripheral.usartPort->CTRL |= USART_CTRL_CSINV_ENABLE;
 
-  /////////////////////////////////////////////////////////////////////////////
-  // Put your additional application init code here!                         //
-  // This is called once during start-up.                                    //
-  /////////////////////////////////////////////////////////////////////////////
-  //GPIO_PinModeSet(gpioPortB,0,gpioModeWiredAndPullUp,0);
-  //sl_button_enable(SL_SIMPLE_BUTTON_INSTANCE(0));
+  sc = SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
+  app_assert_status(sc);
 }
 
 /**************************************************************************//**
@@ -81,26 +135,7 @@ SL_WEAK void app_init(void)
  *****************************************************************************/
 SL_WEAK void app_process_action(void)
 {
-  // Check if there was a report button interaction.
-  //if (report_button_flag) {
-  //  sl_status_t sc;
 
-   // report_button_flag = false; // Reset flag
-
-   // sc = update_report_button_characteristic();
-   // app_log_status_error(sc);
-
-   // if (sc == SL_STATUS_OK) {
-   //   sc = send_report_button_notification();
-   //   app_log_status_error(sc);
-   // }
-  //}
-
-  /////////////////////////////////////////////////////////////////////////////
-  // Put your additional application code here!                              //
-  // This is called infinitely.                                              //
-  // Do not call blocking functions from here!                               //
-  /////////////////////////////////////////////////////////////////////////////
 }
 
 /**************************************************************************//**
@@ -155,18 +190,12 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
         0);  // max. num. adv. events
       app_assert_status(sc);
       // Start general advertising and enable connections.
-      //sc = sl_bt_advertiser_start(
-      //  advertising_set_handle,
-      //  sl_bt_advertiser_general_discoverable,
-      //  sl_bt_advertiser_connectable_scannable);
-      sc = sl_bt_legacy_advertiser_generate_data(
-          advertising_set_handle,
-          sl_bt_advertiser_general_discoverable);
+      sc = sl_bt_advertiser_start(
+        advertising_set_handle,
+        advertiser_general_discoverable,
+        advertiser_connectable_scannable);
       app_assert_status(sc);
-      sc = sl_bt_legacy_advertiser_start(
-          advertising_set_handle,
-          sl_bt_legacy_advertiser_connectable);
-      app_assert_status(sc);
+      //sl_led_turn_on(&sl_led_btnled);
       break;
 
     // -------------------------------
@@ -216,6 +245,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
           if (evt->data.evt_gatt_server_characteristic_status.status_flags == gatt_server_client_config) {
               if (evt->data.evt_gatt_server_characteristic_status.client_config_flags == gatt_notification) {
                 notification_enabled = 1;
+                //sl_led_turn_off(&sl_led_btnled);
               }
               else {
                   notification_enabled = 0;
@@ -233,15 +263,11 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
       connection_handle = 0xff;
 
       // Restart advertising after client has disconnected.
-      sc = sl_bt_legacy_advertiser_generate_data(
-          advertising_set_handle,
-          sl_bt_advertiser_general_discoverable);
+      sc = sl_bt_advertiser_start(
+        advertising_set_handle,
+        advertiser_general_discoverable,
+        advertiser_connectable_scannable);
       app_assert_status(sc);
-      sc = sl_bt_legacy_advertiser_start(
-          advertising_set_handle,
-          sl_bt_legacy_advertiser_connectable);
-      app_assert_status(sc);
-
       break;
 
     ///////////////////////////////////////////////////////////////////////////
@@ -255,99 +281,43 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
   }
 }
 
-/***************************************************************************//**
- * Simple Button
- * Button state changed callback
- * @param[in] handle Button event handle
- ******************************************************************************/
+void sendkey(uint8_t keycode){
+  actual_key = reduced_key_array[keycode];
+  sl_bt_external_signal(1);
+  actual_key = 0;
+  sl_bt_external_signal(1);
+}
+
 void sl_button_on_change(const sl_button_t *handle)
 {
-  if (SL_SIMPLE_BUTTON_INSTANCE(0) == handle) {
-    if(sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
-        //app_log("Button pushed - callback\r\n");
-        actual_key = 0x1d;
-        sl_led_turn_on(SL_SIMPLE_LED_INSTANCE(0));
-    }
-    else {
-        // Button released
-        actual_key = 0;
-        sl_led_turn_off(SL_SIMPLE_LED_INSTANCE(0));
-    }
-    report_button_flag = true;
+  if(&sl_button_button == handle){
+      if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED){
+
+          actual_key = reduced_key_array[counter];
+          sl_led_turn_on(&sl_led_btnled);
+          app_log("Button pushed - callback\r\n");
+      }
+      else{
+          if(KEY_ARRAY_SIZE == counter){
+            counter = 0;
+          }
+          else{
+            counter++;
+          }
+
+          actual_key = 0;
+          sl_led_turn_off(&sl_led_btnled);
+          app_log("Button released - callback \r\n");
+      }
   }
-  modifier = 0;
-  sl_status_t sc = sl_bt_external_signal(1); // trigger sending key
-  app_assert_status(sc);
+  /*
+  else if(&sl_button_btn1 == handle){
+      if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED){
+          modifier = SHIFT_KEY_CODE;
+      }
+      else{
+          modifier = 0;
+      }
+  }*/
+  sl_bt_external_signal(1);
 }
-
-/***************************************************************************//**
- * Updates the Report Button characteristic.
- *
- * Checks the current button state and then writes it into the local GATT table.
- ******************************************************************************/
-/*
-static sl_status_t update_report_button_characteristic(void)
-{
-  sl_status_t sc;
-  uint8_t data_send;
-
-  switch (sl_button_get_state(SL_SIMPLE_BUTTON_INSTANCE(0))) {
-    case SL_SIMPLE_BUTTON_PRESSED:
-      data_send = (uint8_t)SL_SIMPLE_BUTTON_PRESSED;
-      break;
-
-    case SL_SIMPLE_BUTTON_RELEASED:
-      data_send = (uint8_t)SL_SIMPLE_BUTTON_RELEASED;
-      break;
-
-    default:
-      // Invalid button state
-      return SL_STATUS_FAIL; // Invalid button state
-  }
-
-  // Write attribute in the local GATT database.
-  //sc = sl_bt_gatt_server_write_attribute_value(gattdb_report_button,
-  //                                             0,
-  //                                             sizeof(data_send),
-  //                                             &data_send);
-  if (sc == SL_STATUS_OK) {
-    app_log_info("Attribute written: 0x%02x", (int)data_send);
-  }
-
-  return sc;
-}
-*/
-
-/***************************************************************************//**
- * Sends notification of the Report Button characteristic.
- *
- * Reads the current button state from the local GATT database and sends it as a
- * notification.
- ******************************************************************************/
-/*
-static sl_status_t send_report_button_notification(void)
-{
-  sl_status_t sc;
-  uint8_t data_send;
-  size_t data_len;
-
-  // Read report button characteristic stored in local GATT database.
-  //sc = sl_bt_gatt_server_read_attribute_value(gattdb_report_button,
-  //                                            0,
-  //                                            sizeof(data_send),
-  //                                            &data_len,
-  //                                            &data_send);
-  if (sc != SL_STATUS_OK) {
-    return sc;
-  }
-
-  // Send characteristic notification.
-  //sc = sl_bt_gatt_server_notify_all(gattdb_report_button,
-  //                                  sizeof(data_send),
-  //                                  &data_send);
-  if (sc == SL_STATUS_OK) {
-    app_log_append(" Notification sent: 0x%02x\n", (int)data_send);
-  }
-  return sc;
-}
-*/

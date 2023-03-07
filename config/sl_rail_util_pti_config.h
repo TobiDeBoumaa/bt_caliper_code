@@ -45,7 +45,7 @@
 #define SL_RAIL_UTIL_PTI_MODE           RAIL_PTI_MODE_DISABLED
 
 // <o SL_RAIL_UTIL_PTI_BAUD_RATE_HZ> PTI Baud Rate (Hertz)
-// <147800-20000000:1>
+// <0-4294967295:1>
 // <i> Default: 1600000
 #define SL_RAIL_UTIL_PTI_BAUD_RATE_HZ   1600000
 
@@ -55,6 +55,8 @@
 // <<< sl:start pin_tool >>>
 // <pti signal=DOUT,(DFRAME),(DCLK)> SL_RAIL_UTIL_PTI
 // $[PTI_SL_RAIL_UTIL_PTI]
+#define SL_RAIL_UTIL_PTI_PERIPHERAL              PTI
+
 // [PTI_SL_RAIL_UTIL_PTI]$
 
 // <<< sl:end pin_tool >>>

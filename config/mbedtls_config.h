@@ -13,17 +13,11 @@
 // <i> The value of this configuration should be updated for the application needs.
 #define MBEDTLS_SSL_CIPHERSUITES         MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8
 
-// <o SL_MBEDTLS_SSL_IN_CONTENT_LEN> Maximum TLS/DTLS fragment length in bytes (input).
+// <o MBEDTLS_SSL_MAX_CONTENT_LEN> Maximum TLS/DTLS fragment length in bytes.
 // <i> Default: 768
-// <i> The size configured here determines the size of the internal I/O
-// <i> buffer used in mbedTLS when receiving data.
-#define SL_MBEDTLS_SSL_IN_CONTENT_LEN  768
-
-// <o SL_MBEDTLS_SSL_OUT_CONTENT_LEN> Maximum TLS/DTLS fragment length in bytes (output).
-// <i> Default: 768
-// <i> The size configured here determines the size of the internal I/O
-// <i> buffer used in mbedTLS when sending data.
-#define SL_MBEDTLS_SSL_OUT_CONTENT_LEN  768
+// <i> The size configured here determines the size of each of the two
+// <i> internal I/O buffers used in mbedTLS when sending and receiving data.
+#define MBEDTLS_SSL_MAX_CONTENT_LEN  768
 
 // <q SL_MBEDTLS_SSL_MAX_FRAGMENT_LENGTH> Enable support for RFC 6066 max_fragment_length extension in SSL.
 // <i> Default: 1
@@ -59,9 +53,25 @@
 // </h>
 // <<< end of configuration section >>>
 
-// Include transformation logic to apply CMSIS-config configuration options to
-// the correct Mbed TLS / PSA Crypto options.
-#include "sl_mbedtls_config_transform_autogen.h"
+// Convert CMSIS Markup config defines to mbedTLS specific config defines
+#if SL_MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+  #define MBEDTLS_SSL_MAX_FRAGMENT_LENGTH
+#endif
+#if SL_MBEDTLS_SSL_EXPORT_KEYS
+  #define MBEDTLS_SSL_EXPORT_KEYS
+#endif
+#if SL_MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
+  #define MBEDTLS_KEY_EXCHANGE_PSK_ENABLED
+#endif
+#if SL_MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+  #define MBEDTLS_KEY_EXCHANGE_ECDHE_PSK_ENABLED
+#endif
+#if SL_MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+  #define MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+#endif
+#if SL_MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+  #define MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA_ENABLED
+#endif
 
 // Custom defines can be placed here before check_config.h is included.
 

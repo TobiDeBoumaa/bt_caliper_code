@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief In-Place Over-the-Air Device Firmware Update Configuration
+ * @brief SPIDRV configuration file.
  *******************************************************************************
  * # License
- * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2018 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -27,25 +27,17 @@
  * 3. This notice may not be removed or altered from any source distribution.
  *
  ******************************************************************************/
+#ifndef __SILICON_LABS_SPIDRV_CONFIG_H__
+#define __SILICON_LABS_SPIDRV_CONFIG_H__
 
-#ifndef SL_BT_IN_PLACE_OTA_DFU_CONFIG_H
-#define SL_BT_IN_PLACE_OTA_DFU_CONFIG_H
+/***************************************************************************//**
+ * @addtogroup spidrv
+ * @{
+ ******************************************************************************/
 
-// <<< Use Configuration Wizard in Context Menu >>>
+/// SPIDRV configuration option. Use this define to include the slave part of the SPIDRV API.
+#define EMDRV_SPIDRV_INCLUDE_SLAVE
 
-// <h> In-Place OTA DFU Security Configuration
+/** @} (end addtogroup spidrv) */
 
-// <q SL_BT_IN_PLACE_OTA_DFU_BONDING_REQUIRED> Bonding required for OTA transfer
-
-// <i> Bonding required to proceed with the in-place OTA transfer.
-// <i> User must realize bonding process and shall implement a strong
-// <i> 'sl_bt_in_place_ota_dfu_security_status' callback to decide if
-// <i> it is safe to start the OTA transfer or not.
-// <i> Default: 0
-#define SL_BT_IN_PLACE_OTA_DFU_BONDING_REQUIRED 0
-
-// </h>
-
-// <<< end of configuration section >>>
-
-#endif // SL_BT_IN_PLACE_OTA_DFU_CONFIG_H
+#endif /* __SILICON_LABS_SPIDRV_CONFIG_H__ */

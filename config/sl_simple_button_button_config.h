@@ -1,6 +1,6 @@
 /***************************************************************************//**
  * @file
- * @brief Simple Led Driver Configuration
+ * @brief Simple Button Driver User Config
  *******************************************************************************
  * # License
  * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
@@ -15,29 +15,30 @@
  *
  ******************************************************************************/
 
-#ifndef SL_SIMPLE_LED_LED0_CONFIG_H
-#define SL_SIMPLE_LED_LED0_CONFIG_H
+#ifndef SL_SIMPLE_BUTTON_BUTTON_CONFIG_H
+#define SL_SIMPLE_BUTTON_BUTTON_CONFIG_H
+
+#include "em_gpio.h"
+#include "sl_simple_button.h"
 
 // <<< Use Configuration Wizard in Context Menu >>>
 
-// <h> Simple LED configuration
-// <o SL_SIMPLE_LED_LED0_POLARITY>
-// <SL_SIMPLE_LED_POLARITY_ACTIVE_LOW=> Active low
-// <SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH=> Active high
-// <i> Default: SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
-#define SL_SIMPLE_LED_LED0_POLARITY SL_SIMPLE_LED_POLARITY_ACTIVE_HIGH
-// </h> end led configuration
-
+// <o SL_SIMPLE_BUTTON_BUTTON_MODE>
+// <SL_SIMPLE_BUTTON_MODE_INTERRUPT=> Interrupt
+// <SL_SIMPLE_BUTTON_MODE_POLL_AND_DEBOUNCE=> Poll and Debounce
+// <SL_SIMPLE_BUTTON_MODE_POLL=> Poll
+// <i> Default: SL_SIMPLE_BUTTON_MODE_INTERRUPT
+#define SL_SIMPLE_BUTTON_BUTTON_MODE       SL_SIMPLE_BUTTON_MODE_INTERRUPT
 // <<< end of configuration section >>>
 
 // <<< sl:start pin_tool >>>
 
-// <gpio> SL_SIMPLE_LED_LED0
-// $[GPIO_SL_SIMPLE_LED_LED0]
-#define SL_SIMPLE_LED_LED0_PORT                  gpioPortB
-#define SL_SIMPLE_LED_LED0_PIN                   1
-// [GPIO_SL_SIMPLE_LED_LED0]$
+// <gpio> SL_SIMPLE_BUTTON_BUTTON
+// $[GPIO_SL_SIMPLE_BUTTON_BUTTON]
+#define SL_SIMPLE_BUTTON_BUTTON_PORT             gpioPortB
+#define SL_SIMPLE_BUTTON_BUTTON_PIN              0
+// [GPIO_SL_SIMPLE_BUTTON_BUTTON]$
 
 // <<< sl:end pin_tool >>>
 
-#endif // SL_SIMPLE_LED_LED0_CONFIG_H
+#endif // SL_SIMPLE_BUTTON_BUTTON_CONFIG_H
