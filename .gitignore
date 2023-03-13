@@ -1,1 +1,20 @@
-
+.cproject
+.gitignore
+.pdm/
+.project
+.projectlinkstore
+.settings/
+.trash/
+.uceditor/
+"GNU ARM v10.3.1 - Default/"
+app_properties.c
+autogen/
+config/sl_emlib_gpio_init_gpioInstanz_config.h
+create_bl_files.bat
+create_bl_files.sh
+readme.html
+readme_img0.png
+readme_img1.png
+readme_img2.png
+readme_img3.png
+readme_img4.png
