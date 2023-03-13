@@ -28,6 +28,7 @@
  *
  ******************************************************************************/
 #include "em_common.h"
+//#include "em_gpio.h"
 #include "app_assert.h"
 #include "sl_bluetooth.h"
 #include "gatt_db.h"
@@ -47,6 +48,8 @@
 static uint8_t input_report_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t actual_key, modifier;
 static uint8_t counter=0;
+static uint8_t bufferedKeyLen=0;
+static uint8_t bufferedKeys[10]={0,0,0,0x36,0,0,0x10,0x10};
 
 static uint8_t notification_enabled = 0;
 static uint8_t connection_handle = 0xff;
@@ -125,6 +128,11 @@ SL_WEAK void app_init(void)
   //sc = sl_uartdrv_set_default(&sl_uartdrv_usart_caliprUART_handle);
   //app_assert_status(sc);
   sl_spidrv_usart_spifahrer_handle->peripheral.usartPort->CTRL |= USART_CTRL_CSINV_ENABLE;
+  //GPIO->P[gpioPortC].CTRL
+  //GPIO_PinModeSet(gpioPortC,1,gpioModeInputPull,1);
+
+
+
 
   sc = SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
   app_assert_status(sc);
@@ -223,18 +231,24 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
       break;
 
     case  sl_bt_evt_system_external_signal_id:
-
+      while(--bufferedKeyLen) {
       if ((notification_enabled == 1) && (connection_handle != 0xff))
       {
           memset(input_report_data, 0, sizeof(input_report_data));
 
           input_report_data[MODIFIER_INDEX] = modifier;
-          input_report_data[DATA_INDEX] = actual_key;
+          input_report_data[DATA_INDEX] = bufferedKeys[sizeof(bufferedKeys)-bufferedKeyLen];
 
-          sc = sl_bt_gatt_server_send_notification(connection_handle, gattdb_report, 8, input_report_data);
-          app_assert_status(sc);
+          while(sl_bt_gatt_server_send_notification(connection_handle, gattdb_report, 8, input_report_data));
+          //app_assert_status(sc);
+
+          //send 0
+          memset(input_report_data, 0, sizeof(input_report_data));
+
+          while(sl_bt_gatt_server_send_notification(connection_handle, gattdb_report, 8, input_report_data));
 
           app_log("Key report was sent\r\n");
+      }
       }
       break;
 
@@ -281,43 +295,44 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
   }
 }
 
-void sendkey(uint8_t keycode){
-  actual_key = reduced_key_array[keycode];
-  sl_bt_external_signal(1);
-  actual_key = 0;
-  sl_bt_external_signal(1);
-}
-
 void sl_button_on_change(const sl_button_t *handle)
 {
   if(&sl_button_button == handle){
       if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED){
-
-          actual_key = reduced_key_array[counter];
-          sl_led_turn_on(&sl_led_btnled);
+          //sl_led_turn_on(&sl_led_btnled);
           app_log("Button pushed - callback\r\n");
       }
       else{
-          if(KEY_ARRAY_SIZE == counter){
-            counter = 0;
+          if(isInInch == false){
+            uint8_t bufferedKeysSOLL[10]={0,0,0,0x36,0,0,0x10,0x10,0x28};
+            memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeys));
+            bufferedKeyLen = 10;
+            bufferedKeys[5]= key_Numbers[lastValue%10];
+            lastValue /= 10;
+            bufferedKeys[4]= key_Numbers[lastValue%10];
+            lastValue /= 10;
+            bufferedKeys[2]= key_Numbers[lastValue%10];
+            lastValue /= 10;
+            if(lastValue){
+                bufferedKeys[1]= key_Numbers[lastValue%10];
+                lastValue /= 10;
+            }
+            if(lastValue<0){
+              bufferedKeys[0]= 0x2D;
+            }else {
+              if(lastValue){
+                  bufferedKeys[0]= key_Numbers[lastValue%10];
+                  lastValue /= 10;
+              }
+            }
+          } else {
+              uint8_t bufferedKeysSOLL[10]={0x0C,0x11,0x06,0x0B,0x2C,0x05,0x15,0x12,0x0E,0x11};
+              memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeys));
+              bufferedKeyLen = 10;
           }
-          else{
-            counter++;
-          }
-
-          actual_key = 0;
-          sl_led_turn_off(&sl_led_btnled);
+          //sl_led_turn_off(&sl_led_btnled);
           app_log("Button released - callback \r\n");
+          sl_bt_external_signal(1);
       }
   }
-  /*
-  else if(&sl_button_btn1 == handle){
-      if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED){
-          modifier = SHIFT_KEY_CODE;
-      }
-      else{
-          modifier = 0;
-      }
-  }*/
-  sl_bt_external_signal(1);
 }
