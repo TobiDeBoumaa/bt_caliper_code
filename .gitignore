@@ -6,7 +6,7 @@
 .settings/
 .trash/
 .uceditor/
-GNU\ ARM\ v10.3.1\ -\ Default/
+GNU\ ARM\ v10.*\ -\ Default/
 app_properties.c
 autogen/
 config/sl_emlib_gpio_init_gpioInstanz_config.h
