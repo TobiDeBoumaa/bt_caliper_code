@@ -43,15 +43,13 @@
 #define MODIFIER_INDEX 0
 #define DATA_INDEX 2
 
-#define SHIFT_KEY_CODE 0x02
-
-#define FIFOSIZE 7
+#define MAXM_MESSAGE_LEN 20
 
 static uint8_t input_report_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t actual_key, modifier;
 static uint8_t counter=0;
 static uint8_t bufferedKeyLen=0;
-static uint8_t bufferedKeys[20]={0,0,0,0x36,0,0,0x10,0x10};
+static uint8_t bufferedKeys[MAXM_MESSAGE_LEN]={0,0,0,0x36,0,0,0x10,0x10};
 
 
 
@@ -106,93 +104,21 @@ static const uint8_t key_Numbers[] =
 };
 
 uint16_t spi_rxbuffer[2]={0};
-bool isStarted = false;
-bool useNextValue = false;
+
 typedef struct{
    uint32_t caliperValue : 20;
    uint32_t isNegativ : 1;
    uint32_t reserved : 2;
    uint32_t isInch : 1;
 }readFIFO;
-readFIFO readDATA[FIFOSIZE];
-uint8_t currentPos = 0;
-void addToFiFo(readFIFO* in){
-  if(currentPos<FIFOSIZE)
-      currentPos++;
-  else
-    currentPos=0;
-  readDATA[currentPos]=*in;
-}
-
-readFIFO* getStableValue() {
-    int count = 1, tempCount;
-    int i = 0,j = 0;
-    //Get first element
-    readFIFO* popular = readDATA;
-    readFIFO* temp = readDATA;
-    for (i = 0; i < (FIFOSIZE- 1); i++) {
-        temp = &readDATA[i];
-        tempCount = 0;
-        for (j = 1; j < FIFOSIZE; j++) {
-            if (temp == &readDATA[j])
-                tempCount++;
-        }
-        if (tempCount > count) {
-            popular = temp;
-            count = tempCount;
-        }
-    }
-    return popular;
-}
-readFIFO* currentValue() {
-    return &readDATA[currentPos];
-}
-/*************************************************************************//**
- * Uart Callback
- *****************************************************************************/
-void TransferComplete(SPIDRV_Handle_t handle, Ecode_t transferStatus, int itemsTransferred)
-{
-    if (transferStatus == ECODE_EMDRV_SPIDRV_OK) {
-        uint32_t combiBuffer = spi_rxbuffer[0] + (spi_rxbuffer[1]<<12); // tranmition contains 2 12 bit frames
-        readFIFO* messWert = (readFIFO*)&combiBuffer;
-        if(!isStarted){
-            if(0x800000 == combiBuffer){ // nur inch bit gesetzt
-                isStarted=true;
-                SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
-            }else
-              SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 30 );
-        }else{
-        if(useNextValue){
-        if(!(messWert->reserved) && (messWert->caliperValue < 15500))
-          addToFiFo((readFIFO*)&combiBuffer);
-        useNextValue=false;
-        }
-        else
-          useNextValue=true;
-        SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
-    }
-  } else
-  SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
-}
 
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
 SL_WEAK void app_init(void)
 {
-  sl_status_t sc;
-  //sl_uartdrv_init_instances(); // done automaticlly
-  //sc = sl_uartdrv_set_default(&sl_uartdrv_usart_caliprUART_handle);
-  //app_assert_status(sc);
+  // run once
   sl_spidrv_usart_spifahrer_handle->peripheral.usartPort->CTRL |= USART_CTRL_CSINV_ENABLE;
-  //GPIO->P[gpioPortC].CTRL
-  //GPIO_PinModeSet(gpioPortC,1,gpioModeInputPull,1);
-
-
-
-
-  sc = SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
-  app_assert_status(sc);
 }
 
 /**************************************************************************//**
@@ -356,14 +282,19 @@ void sl_button_on_change(const sl_button_t *handle)
 {
   if(&sl_button_button == handle){
       if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED){
-          //sl_led_turn_on(&sl_led_btnled);
+          sl_led_turn_on(&sl_led_btnled);
           app_log("Button pushed - callback\r\n");
       }
       else{
-          volatile readFIFO * stableRead = getStableValue();
-          uint32_t writeValue= stableRead->caliperValue;
+        REDOREAD : 
+          while(SPIDRV_SReceiveB(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 100 ));
+          uint32_t combiBuffer = spi_rxbuffer[0] + (spi_rxbuffer[1]<<12); // tranmition contains 2 12 bit frames
+          readFIFO* messWert = (readFIFO*)&combiBuffer;
+          if(messWert->reserved || (messWert->caliperValue > 15500))
+            goto REDOREAD;
+          uint32_t writeValue= messWert->caliperValue;
           if(isStarted){
-            if(!stableRead->isInch){
+            if(!messWert->isInch){
             uint8_t bufferedKeysSOLL[12]={0,0,0,0,0,0x36,0,0,0x2C,0x10,0x10,0x28};
             memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeysSOLL));
             bufferedKeyLen = 12;
@@ -381,7 +312,7 @@ void sl_button_on_change(const sl_button_t *handle)
               bufferedKeys[2]= key_Numbers[writeValue%10];
               writeValue /= 10;
             }
-            if(stableRead->isNegativ){
+            if(messWert->isNegativ){
               bufferedKeys[1]= 0x38;
             }else {
               if(writeValue){
@@ -405,7 +336,7 @@ void sl_button_on_change(const sl_button_t *handle)
               writeValue /= 10;
               bufferedKeys[2]= key_Numbers[writeValue%10];
               writeValue /= 10;
-              if(stableRead->isNegativ){
+              if(messWert->isNegativ){
                 bufferedKeys[1]= 0x38;
               }else {
                 if(writeValue){
@@ -419,7 +350,7 @@ void sl_button_on_change(const sl_button_t *handle)
               memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeysSOLL));
               bufferedKeyLen = 18;
           }
-          //sl_led_turn_off(&sl_led_btnled);
+          sl_led_turn_off(&sl_led_btnled);
           app_log("Button released - callback \r\n");
           sl_bt_external_signal(1);
       }
