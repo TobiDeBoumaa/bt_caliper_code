@@ -45,11 +45,15 @@
 
 #define SHIFT_KEY_CODE 0x02
 
+#define FIFOSIZE 7
+
 static uint8_t input_report_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t actual_key, modifier;
 static uint8_t counter=0;
 static uint8_t bufferedKeyLen=0;
-static uint8_t bufferedKeys[10]={0,0,0,0x36,0,0,0x10,0x10};
+static uint8_t bufferedKeys[20]={0,0,0,0x36,0,0,0x10,0x10};
+
+
 
 static uint8_t notification_enabled = 0;
 static uint8_t connection_handle = 0xff;
@@ -102,19 +106,72 @@ static const uint8_t key_Numbers[] =
 };
 
 uint16_t spi_rxbuffer[2]={0};
-int32_t lastValue=0;
-bool isInInch = false;
+bool isStarted = false;
+bool useNextValue = false;
+typedef struct{
+   uint32_t caliperValue : 20;
+   uint32_t isNegativ : 1;
+   uint32_t reserved : 2;
+   uint32_t isInch : 1;
+}readFIFO;
+readFIFO readDATA[FIFOSIZE];
+uint8_t currentPos = 0;
+void addToFiFo(readFIFO* in){
+  if(currentPos<FIFOSIZE)
+      currentPos++;
+  else
+    currentPos=0;
+  readDATA[currentPos]=*in;
+}
+
+readFIFO* getStableValue() {
+    int count = 1, tempCount;
+    int i = 0,j = 0;
+    //Get first element
+    readFIFO* popular = readDATA;
+    readFIFO* temp = readDATA;
+    for (i = 0; i < (FIFOSIZE- 1); i++) {
+        temp = &readDATA[i];
+        tempCount = 0;
+        for (j = 1; j < FIFOSIZE; j++) {
+            if (temp == &readDATA[j])
+                tempCount++;
+        }
+        if (tempCount > count) {
+            popular = temp;
+            count = tempCount;
+        }
+    }
+    return popular;
+}
+readFIFO* currentValue() {
+    return &readDATA[currentPos];
+}
 /*************************************************************************//**
  * Uart Callback
  *****************************************************************************/
 void TransferComplete(SPIDRV_Handle_t handle, Ecode_t transferStatus, int itemsTransferred)
 {
-  if (transferStatus == ECODE_EMDRV_SPIDRV_OK) {
-      uint32_t combiBuffer = spi_rxbuffer[0] + (spi_rxbuffer[1]<<12); // tranmition contains 2 12 bit frames
-      lastValue =  combiBuffer & 0x0FFFFF;  // last 24bit contain data
-      lastValue *= combiBuffer & 0x100000 ? -1:1;  // bi 25 determins if it is a negativ number
-      isInInch = combiBuffer & 0x800000;
-  }
+    if (transferStatus == ECODE_EMDRV_SPIDRV_OK) {
+        uint32_t combiBuffer = spi_rxbuffer[0] + (spi_rxbuffer[1]<<12); // tranmition contains 2 12 bit frames
+        readFIFO* messWert = (readFIFO*)&combiBuffer;
+        if(!isStarted){
+            if(0x800000 == combiBuffer){ // nur inch bit gesetzt
+                isStarted=true;
+                SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
+            }else
+              SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 30 );
+        }else{
+        if(useNextValue){
+        if(!(messWert->reserved) && (messWert->caliperValue < 15500))
+          addToFiFo((readFIFO*)&combiBuffer);
+        useNextValue=false;
+        }
+        else
+          useNextValue=true;
+        SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
+    }
+  } else
   SPIDRV_SReceive(sl_spidrv_usart_spifahrer_handle, &spi_rxbuffer, 3, TransferComplete, 0 );
 }
 
@@ -231,13 +288,13 @@ void sl_bt_on_event(sl_bt_msg_t *evt)
       break;
 
     case  sl_bt_evt_system_external_signal_id:
+      if ((notification_enabled == 1) && (connection_handle != 0xff)) {
+      uint8_t messageLength = bufferedKeyLen;
       while(--bufferedKeyLen) {
-      if ((notification_enabled == 1) && (connection_handle != 0xff))
-      {
           memset(input_report_data, 0, sizeof(input_report_data));
 
           input_report_data[MODIFIER_INDEX] = modifier;
-          input_report_data[DATA_INDEX] = bufferedKeys[sizeof(bufferedKeys)-bufferedKeyLen];
+          input_report_data[DATA_INDEX] = bufferedKeys[messageLength-bufferedKeyLen];
 
           while(sl_bt_gatt_server_send_notification(connection_handle, gattdb_report, 8, input_report_data));
           //app_assert_status(sc);
@@ -303,32 +360,64 @@ void sl_button_on_change(const sl_button_t *handle)
           app_log("Button pushed - callback\r\n");
       }
       else{
-          if(isInInch == false){
-            uint8_t bufferedKeysSOLL[10]={0,0,0,0x36,0,0,0x10,0x10,0x28};
-            memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeys));
-            bufferedKeyLen = 10;
-            bufferedKeys[5]= key_Numbers[lastValue%10];
-            lastValue /= 10;
-            bufferedKeys[4]= key_Numbers[lastValue%10];
-            lastValue /= 10;
-            bufferedKeys[2]= key_Numbers[lastValue%10];
-            lastValue /= 10;
-            if(lastValue){
-                bufferedKeys[1]= key_Numbers[lastValue%10];
-                lastValue /= 10;
+          volatile readFIFO * stableRead = getStableValue();
+          uint32_t writeValue= stableRead->caliperValue;
+          if(isStarted){
+            if(!stableRead->isInch){
+            uint8_t bufferedKeysSOLL[12]={0,0,0,0,0,0x36,0,0,0x2C,0x10,0x10,0x28};
+            memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeysSOLL));
+            bufferedKeyLen = 12;
+            bufferedKeys[7]= key_Numbers[writeValue%10];
+            writeValue /= 10;
+            bufferedKeys[6]= key_Numbers[writeValue%10];
+            writeValue /= 10;
+            bufferedKeys[4]= key_Numbers[writeValue%10];
+            writeValue /= 10;
+            if(writeValue){
+                bufferedKeys[3]= key_Numbers[writeValue%10];
+                writeValue /= 10;
             }
-            if(lastValue<0){
-              bufferedKeys[0]= 0x2D;
+            if(writeValue){
+              bufferedKeys[2]= key_Numbers[writeValue%10];
+              writeValue /= 10;
+            }
+            if(stableRead->isNegativ){
+              bufferedKeys[1]= 0x38;
             }else {
-              if(lastValue){
-                  bufferedKeys[0]= key_Numbers[lastValue%10];
-                  lastValue /= 10;
+              if(writeValue){
+                  bufferedKeys[1]= key_Numbers[writeValue%10];
+                  writeValue /= 10;
               }
             }
           } else {
-              uint8_t bufferedKeysSOLL[10]={0x0C,0x11,0x06,0x0B,0x2C,0x05,0x15,0x12,0x0E,0x11};
-              memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeys));
-              bufferedKeyLen = 10;
+              // setup for inch
+              uint8_t bufferedKeysSOLL[14]={0,0,0x27,0x36,0x27,0x27,0x27,0,0x2C,0x1C,0x12,0x0F,0x0F,0x28};
+              memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeysSOLL));
+              bufferedKeyLen = 14;
+              if(writeValue&1)
+                bufferedKeys[7]= key_Numbers[5];
+              writeValue /= 2;
+              bufferedKeys[6]= key_Numbers[writeValue%10];
+              writeValue /= 10;
+              bufferedKeys[5]= key_Numbers[writeValue%10];
+              writeValue /= 10;
+              bufferedKeys[4]= key_Numbers[writeValue%10];
+              writeValue /= 10;
+              bufferedKeys[2]= key_Numbers[writeValue%10];
+              writeValue /= 10;
+              if(stableRead->isNegativ){
+                bufferedKeys[1]= 0x38;
+              }else {
+                if(writeValue){
+                    bufferedKeys[1]= key_Numbers[writeValue%10];
+                    writeValue /= 10;
+                }
+              }
+          }
+          } else {//is not started
+              uint8_t bufferedKeysSOLL[18]={0x0,0x13,0xF,0x8,0x4,0x16,0x8,0x2C,0x18,0x16,0x8,0x2C,0x16,0x8,0x17,0x18,0x13,0x28};
+              memcpy(bufferedKeys, bufferedKeysSOLL, sizeof(bufferedKeysSOLL));
+              bufferedKeyLen = 18;
           }
           //sl_led_turn_off(&sl_led_btnled);
           app_log("Button released - callback \r\n");
