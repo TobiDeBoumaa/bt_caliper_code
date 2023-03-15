@@ -17,6 +17,12 @@ Based on https://github.com/SiliconLabs/bluetooth_applications/tree/master/bluet
 6. Build and flash the project to your device.
 7. Enjoy
 
+## Benutzung
+
+1. Board mit dem Messschieber verbinden
+2. Messschieber mit dem GATT Client(PC, Smartphone, etz.) verbinden
+3. Messschieber auf 0Zoll stellen
+4. Mit dem Knopf lassen sich nun Daten versenden!
 
 ## Verwendete Gecko SDK Version ##
 
