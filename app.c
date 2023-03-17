@@ -7,7 +7,8 @@
 
 #include "app_log.h"
 #include "sl_simple_button_instances.h"
-#include "sl_simple_led_instances.h"
+//#include "sl_simple_led_instances.h"
+#include "sl_pwm_instances.h"
 #include "sl_spidrv_instances.h"
 
 #define KEY_ARRAY_SIZE 25
@@ -15,6 +16,7 @@
 #define DATA_INDEX 2
 
 #define MAXM_MESSAGE_LEN 20
+#define LED_BRIGHTNESS_PERCENTAGE 10
 
 static uint8_t input_report_data[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static uint8_t modifier;
@@ -62,6 +64,7 @@ SL_WEAK void app_init(void) {
   // run once
   sl_spidrv_usart_spifahrer_handle->peripheral.usartPort->CTRL |=
       USART_CTRL_CSINV_ENABLE;
+  sl_pwm_set_duty_cycle(&sl_pwm_COOLEPWMLED, LED_BRIGHTNESS_PERCENTAGE);
 }
 
 /**************************************************************************/
@@ -227,7 +230,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt) {
 void sl_button_on_change(const sl_button_t *handle) {
   if (&sl_button_button == handle) {
     if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
-      //sl_led_turn_on(&sl_led_btnled);
+      sl_pwm_start(&sl_pwm_COOLEPWMLED);
       app_log("Button pushed - callback\r\n");
     } else {
         volatile uint64_t timeoutCounter =0;
@@ -296,7 +299,7 @@ void sl_button_on_change(const sl_button_t *handle) {
           }
         }
       }
-      //sl_led_turn_off(&sl_led_btnled);
+      sl_pwm_stop(&sl_pwm_COOLEPWMLED);
       app_log("Button released - callback \r\n");
       sl_bt_external_signal(1);
     }

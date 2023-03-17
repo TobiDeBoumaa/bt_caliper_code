@@ -20,31 +20,33 @@ include:
 sdk: {id: gecko_sdk, version: 3.1.1}
 toolchain_settings: []
 component:
-- {id: app_log}
 - instance: [button]
   id: simple_button
-- {id: bluetooth_feature_connection}
 - {id: bluetooth_feature_gatt_server}
+- {id: bluetooth_feature_sm}
+- {id: mpu}
+- {id: gatt_configuration}
+- instance: [COOLEPWMLED]
+  id: pwm
+- {id: EFR32BG21B020F1024IM32}
+- {id: bluetooth_stack}
+- instance: [spifahrer]
+  id: spidrv_usart
+- {id: rail_util_pti}
+- {id: bluetooth_feature_gatt}
+- {id: app_log}
+- instance: [gpioInstanz]
+  id: emlib_gpio_simple_init
+- {id: bluetooth_feature_connection}
 - {id: bluetooth_feature_advertiser}
 - instance: [ioStream_USART]
   id: iostream_usart
-- {id: bluetooth_feature_sm}
-- {id: mpu}
 - {id: bluetooth_feature_system}
-- {id: gatt_configuration}
 - {id: bluetooth_feature_scanner}
-- {id: EFR32BG21B020F1024IM32}
-- instance: [btnLED]
-  id: simple_led
-- {id: bluetooth_stack}
 - {id: component_catalog}
 - {id: ota_dfu}
-- instance: [spifahrer]
-  id: spidrv_usart
 - {id: bootloader_interface}
-- {id: rail_util_pti}
 - {id: app_assert}
-- {id: bluetooth_feature_gatt}
 other_file:
 - {path: create_bl_files.bat}
 - {path: create_bl_files.sh}
