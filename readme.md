@@ -7,7 +7,7 @@ Based on https://github.com/SiliconLabs/bluetooth_applications/tree/master/bluet
 1. Create a new 'Bluetooth - SoC Empty' project for your device.
 2. Install the following software components:
    1. Platform -> Driver -> Simple Button (instance: button)
-   2. Platform -> Driver -> Simple LED (instance: btnLED)
+   2. Platform -> Driver -> PWM (instance: COOLEPWMLED)
    3. Platform -> Driver -> SPIDRV USART (instance: spifahrer)
    4. Platform -> Peripheral -> GPIO Init (instance: gpioInstanz)
    5. Services -> IO Stream -> IO Stream: USART
