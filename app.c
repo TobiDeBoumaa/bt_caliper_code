@@ -227,7 +227,7 @@ void sl_bt_on_event(sl_bt_msg_t *evt) {
 void sl_button_on_change(const sl_button_t *handle) {
   if (&sl_button_button == handle) {
     if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED) {
-      sl_led_turn_on(&sl_led_btnled);
+      //sl_led_turn_on(&sl_led_btnled);
       app_log("Button pushed - callback\r\n");
     } else {
         volatile uint64_t timeoutCounter =0;
@@ -296,7 +296,7 @@ void sl_button_on_change(const sl_button_t *handle) {
           }
         }
       }
-      sl_led_turn_off(&sl_led_btnled);
+      //sl_led_turn_off(&sl_led_btnled);
       app_log("Button released - callback \r\n");
       sl_bt_external_signal(1);
     }
